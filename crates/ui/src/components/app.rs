@@ -4,6 +4,7 @@ use dioxus::prelude::*;
 use process::{format_uptime, get_system_stats};
 use callback::is_driver_loaded;
 use std::process::Command;
+// use rfd::AsyncFileDialog;
 
 use crate::config::{delete_pat, has_pat, load_pat, load_theme, save_pat, save_theme, Theme};
 use crate::routes::Route;
@@ -22,6 +23,7 @@ pub fn App() -> Element {
 pub fn Layout() -> Element {
     let mut system_stats = use_signal(|| get_system_stats());
     let mut about_popup = use_signal(|| false);
+    let mut show_settings_modal = use_signal(|| false);
     let mut current_theme = use_signal(|| load_theme());
     let mut driver_loaded = use_signal(|| is_driver_loaded());
     let mut install_status = use_signal(|| String::new());
@@ -31,6 +33,9 @@ pub fn Layout() -> Element {
     let mut license_error = use_signal(|| String::new());
     let mut show_install_warning = use_signal(|| false);
     let mut license_validated = use_signal(|| false);
+    let mut taskmgr_path = use_signal(|| std::env::current_exe().map(|p| p.to_string_lossy().to_string()).unwrap_or_default());
+    let mut settings_status = use_signal(|| String::new());
+    let mut is_default_taskmgr = use_signal(|| false);
     let route: Route = use_route();
 
     // Validate license on startup
@@ -89,6 +94,21 @@ pub fn Layout() -> Element {
         }
     });
 
+    // Check registry for taskmgr debugger
+    use_future(move || async move {
+        let result = tokio::task::spawn_blocking(|| {
+            Command::new("reg")
+                .args(&["query", "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe", "/v", "Debugger"])
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false)
+        }).await;
+        
+        if let Ok(is_set) = result {
+            is_default_taskmgr.set(is_set);
+        }
+    });
+
     let stats = system_stats.read().clone();
     let version = option_env!("CARGO_PKG_VERSION").unwrap_or("unknown");
     let theme_css = get_theme_css(*current_theme.read());
@@ -127,30 +147,6 @@ pub fn Layout() -> Element {
                     div {
                         class: "title-bar-drag",
                         span { class: "title-text", "DioProcess | Windows System Monitor Tool PUBLIC BUILD version" }
-                    }
-                    // Theme selector
-                    div { class: "theme-selector",
-                        select {
-                            class: "theme-select",
-                            value: "{current_theme.read().display_name()}",
-                            onchange: move |evt| {
-                                let value = evt.value();
-                                let new_theme = match value.as_str() {
-                                    "Aura Glow" => Theme::AuraGlow,
-                                    "Cyber" => Theme::Cyber,
-                                    _ => Theme::AuraGlow,
-                                };
-                                current_theme.set(new_theme);
-                                save_theme(new_theme);
-                            },
-                            for theme in Theme::all() {
-                                option {
-                                    value: "{theme.display_name()}",
-                                    selected: *current_theme.read() == *theme,
-                                    "{theme.display_name()}"
-                                }
-                            }
-                        }
                     }
 
                     // Driver Install/Uninstall Button
@@ -231,6 +227,13 @@ pub fn Layout() -> Element {
                     }
 
                     div { class: "title-bar-buttons",
+                        button {
+                            class: "title-btn",
+                            onclick: move |_| {
+                                show_settings_modal.set(true);
+                            },
+                            "⚙️"
+                        }
                         button {
                             class: "title-btn",
                             onclick: move |_| {
@@ -672,6 +675,156 @@ pub fn Layout() -> Element {
 
                 }
 
+                // Settings Modal
+                if *show_settings_modal.read() {
+                    div {
+                        class: "about-modal-overlay",
+                        onclick: move |_| show_settings_modal.set(false),
+
+                        div {
+                            class: "about-modal",
+                            onclick: |e| e.stop_propagation(),
+
+                            div {
+                                class: "about-modal-header",
+                                h2 {
+                                    class: "about-modal-title",
+                                    "⚙️ Settings"
+                                }
+                                button {
+                                    class: "about-modal-close",
+                                    onclick: move |_| show_settings_modal.set(false),
+                                    "✕"
+                                }
+                            }
+
+                            div {
+                                style: "padding: 20px; display: flex; flex-direction: column; gap: 15px;",
+                                
+                                div {
+                                    h3 { style: "color: #e5e7eb; margin-bottom: 10px; font-size: 16px;", "GUI Settings" }
+                                    div {
+                                        style: "display: flex; align-items: center; gap: 10px;",
+                                        label { style: "color: #9ca3af;", "Theme:" }
+                                        
+                                        // Theme selector
+                                        div { class: "theme-selector",
+                                            select {
+                                                class: "theme-select",
+                                                value: "{current_theme.read().display_name()}",
+                                                onchange: move |evt| {
+                                                    let value = evt.value();
+                                                    let new_theme = match value.as_str() {
+                                                        "Aura Glow" => Theme::AuraGlow,
+                                                        "Cyber" => Theme::Cyber,
+                                                        _ => Theme::AuraGlow,
+                                                    };
+                                                    current_theme.set(new_theme);
+                                                    save_theme(new_theme);
+                                                },
+                                                for theme in Theme::all() {
+                                                    option {
+                                                        value: "{theme.display_name()}",
+                                                        selected: *current_theme.read() == *theme,
+                                                        "{theme.display_name()}"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                div {
+                                    style: "margin-top: 20px; padding-top: 20px; border-top: 1px solid #374151;",
+                                    h3 { style: "color: #e5e7eb; margin-bottom: 10px; font-size: 16px;", "Set Default Task Manager" }
+                                    
+                                    div {
+                                        style: "display: flex; flex-direction: column; gap: 10px;",
+                                        
+                                        div {
+                                            style: "display: flex; gap: 10px;",
+                                            input {
+                                                class: "create-process-input",
+                                                style: "flex: 1;",
+                                                value: "{taskmgr_path}",
+                                                oninput: move |e| taskmgr_path.set(e.value()),
+                                                placeholder: "Path to executable...",
+                                                type: "hidden",
+                                            }
+                                        }
+
+                                        // Set as default Task Manager button
+                                        div {
+                                            style: "display: flex; gap: 10px;",
+
+                                            if !*is_default_taskmgr.read() {
+                                                button {
+                                                    class: "btn btn-primary",
+                                                    onclick: move |_| {
+                                                        let path = taskmgr_path.read().clone();
+                                                        let formatted_path = format!("\"{}\"", path);
+                                                        spawn(async move {
+                                                            let output = tokio::task::spawn_blocking(move || {
+                                                                Command::new("reg")
+                                                                    .args(&["add", "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe", "/v", "Debugger", "/t", "REG_SZ", "/d", &formatted_path, "/f"])
+                                                                    .output()
+                                                            }).await;
+                                                            
+                                                            match output {
+                                                                Ok(Ok(o)) if o.status.success() => {
+                                                                    settings_status.set("✓ Set as default Task Manager".to_string());
+                                                                    is_default_taskmgr.set(true);
+                                                                },
+                                                                Ok(Ok(o)) => settings_status.set(format!("✗ Failed: {}", String::from_utf8_lossy(&o.stderr))),
+                                                                _ => settings_status.set("✗ Failed to execute registry command".to_string()),
+                                                            }
+                                                            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                                            settings_status.set(String::new());
+                                                        });
+                                                    },
+                                                    "Set as Default"
+                                                }
+                                            } else {
+                                                button {
+                                                    class: "btn btn-danger",
+                                                    onclick: move |_| {
+                                                        spawn(async move {
+                                                            let output = tokio::task::spawn_blocking(move || {
+                                                                Command::new("reg")
+                                                                    .args(&["delete", "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe", "/v", "Debugger", "/f"])
+                                                                    .output()
+                                                            }).await;
+
+                                                            match output {
+                                                                Ok(Ok(o)) if o.status.success() => {
+                                                                    settings_status.set("✓ Restored Windows Task Manager".to_string());
+                                                                    is_default_taskmgr.set(false);
+                                                                },
+                                                                Ok(Ok(o)) => settings_status.set(format!("✗ Failed: {}", String::from_utf8_lossy(&o.stderr))),
+                                                                _ => settings_status.set("✗ Failed to execute registry command".to_string()),
+                                                            }
+                                                            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                                                            settings_status.set(String::new());
+                                                        });
+                                                    },
+                                                    "Restore Default"
+                                                }
+                                            }
+                                        }
+                                        
+                                        if !settings_status.read().is_empty() {
+                                            div {
+                                                style: "color: #fbbf24; font-size: 14px; margin-top: 5px;",
+                                                "{settings_status}"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // License Key Input Modal
                 if *show_license_modal.read() {
                     div {
@@ -790,4 +943,3 @@ pub fn Layout() -> Element {
             }
         }
 }
-
