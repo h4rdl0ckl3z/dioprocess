@@ -1215,8 +1215,8 @@ const BASE_STYLES: &str = r#"
     }
 
     .about-modal {
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-        border: 1px solid rgba(34, 211, 238, 0.3);
+        background: var(--bg-primary);
+        border: 1px solid var(--border-primary);
         border-radius: 12px;
         width: 700px;
         max-width: 90vw;
