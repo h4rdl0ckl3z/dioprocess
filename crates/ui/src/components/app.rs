@@ -704,7 +704,7 @@ pub fn Layout() -> Element {
                                 div {
                                     h3 { style: "color: #e5e7eb; margin-bottom: 10px; font-size: 16px;", "GUI Settings" }
                                     div {
-                                        style: "display: flex; align-items: center; gap: 10px;",
+                                        style: "display: flex; align-items: center;",
                                         label { style: "color: #9ca3af;", "Theme:" }
                                         
                                         // Theme selector
