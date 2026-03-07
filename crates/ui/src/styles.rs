@@ -1237,7 +1237,7 @@ const BASE_STYLES: &str = r#"
     .about-modal-title {
         font-size: 18px;
         font-weight: 600;
-        color: #22d3ee;
+        color: var(--text-accent);
     }
 
     .about-modal-close {
