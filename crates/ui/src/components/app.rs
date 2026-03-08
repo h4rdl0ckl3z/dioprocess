@@ -663,10 +663,10 @@ pub fn Layout() -> Element {
                         style: "padding: 10px; color: #e5e7eb;",
                         "Discord (Damned Software): "
                         a {
-                            href: "https://discord.gg/zsqrEfCReh",
+                            href: "https://discord.gg/ugYeeJRf5S",
                             target: "_blank",
                             class: "about-link",
-                            "https://discord.gg/zsqrEfCReh"
+                            "https://discord.gg/ugYeeJRf5S"
                         }
                     }
 
@@ -929,7 +929,7 @@ pub fn Layout() -> Element {
                                         style: "color: #9ca3af; font-size: 12px;",
                                         "Need a license key? Contact developer at "
                                         a {
-                                            href: "https://discord.gg/zsqrEfCReh",
+                                            href: "https://discord.gg/ugYeeJRf5S",
                                             target: "_blank",
                                             style: "color: #8b5cf6;",
                                             "Damned Software Discord"
