@@ -11,6 +11,8 @@ Modern Windows desktop application for real-time system monitoring and low-level
 Built with **Rust 2021** + **Dioxus 0.6** | **Requires administrator privileges**
 
 ![Preview 1](./assets/preview1.png)
+<img width="1115" height="735" alt="image" src="https://github.com/user-attachments/assets/71dd7db4-1614-4026-8d8b-62737e2fe60d" />
+
 
 [![Rust](https://img.shields.io/badge/Rust-2021-orange?logo=rust)](https://www.rust-lang.org)
 [![Windows](https://img.shields.io/badge/Platform-Windows-blue?logo=windows)](https://microsoft.com/windows)
